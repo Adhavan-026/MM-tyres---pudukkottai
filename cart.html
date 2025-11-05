@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopping Cart - MM TYRES</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+
+<body>
+  <!-- HEADER -->
+  <header>
+    <div class="container">
+      <div class="header-content">
+        <div>
+          <h1>MM TYRES</h1>
+          <p>CEAT Tyres - Pudukkottai</p>
+        </div>
+        <nav>
+          <a href="index.html">Home</a>
+          <a href="booking.html">Book Alignment</a>
+          <a href="orders.html">My Orders</a>
+          <a href="cart.html" class="active">Cart (<span id="cartCount">0</span>)</a>
+          <div id="authButtons"></div>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <main class="container">
+    <h2>Shopping Cart</h2>
+
+    <div class="cart-container">
+      <!-- Cart Items -->
+      <div class="cart-items" id="cartItemsList"></div>
+
+      <!-- Checkout Section -->
+      <div class="checkout-section">
+        <div class="order-summary">
+          <h3>Order Summary</h3>
+          <div id="orderSummary"></div>
+        </div>
+
+        <div class="checkout-form">
+          <h3>Customer Details</h3>
+          <form id="checkoutForm" onsubmit="placeOrder(event)">
+            <input type="text" id="customerName" placeholder="Full Name" required />
+            <input type="tel" id="customerPhone" placeholder="Phone Number" required pattern="[0-9]{10}" />
+            <textarea id="deliveryAddress" placeholder="Delivery Address" rows="3" required></textarea>
+
+            <h4>Payment Method</h4>
+            <select id="paymentMethod" required>
+              <option value="cod">Cash on Delivery</option>
+              <option value="online">Online Payment (Razorpay)</option>
+            </select>
+
+            <button type="submit" class="btn-primary" id="placeOrderBtn">Place Order</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="container">
+      <p>&copy; 2024 MM TYRES - CEAT Tyres Dealer, Pudukkottai</p>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/main.js"></script>
+  <!-- Order Success Popup -->
+<div id="orderSuccessPopup" class="popup-overlay" style="display: none;">
+    <div class="popup-content">
+        <div class="popup-header">
+            <h2>🎉 Order Placed Successfully!</h2>
+            <span class="popup-close" onclick="closeOrderPopup()">&times;</span>
+        </div>
+        
+        <div class="popup-body">
+            <div class="order-details-popup">
+                <p><strong>Thank you for your order!</strong></p>
+                <p>Your order has been confirmed and is being processed.</p>
+                
+                <div class="order-summary-popup">
+                    <h4>Order Summary:</h4>
+                    <div id="popupOrderSummary"></div>
+                </div>
+                
+                <div class="whats-next">
+                    <h4>What's Next?</h4>
+                    <ul>
+                        <li>📞 We'll contact you within 24 hours to confirm delivery</li>
+                        <li>🚚 Free delivery to your address</li>
+                        <li>⚙️ Professional installation available</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="popup-footer">
+            <button onclick="viewMyOrders()" class="btn-primary">View My Orders</button>
+            <button onclick="continueShopping()" class="btn-secondary">Continue Shopping</button>
+            <button onclick="shareOrder()" class="btn-outline">
+                📤 Share Order Details
+            </button>
+        </div>
+    </div>
+</div>
+<!-- Add this inside popup-body after whats-next section -->
+<div class="rating-section">
+    <h4>How was your shopping experience?</h4>
+    <div class="star-rating">
+        <span class="star" onclick="rateOrder(1)">★</span>
+        <span class="star" onclick="rateOrder(2)">★</span>
+        <span class="star" onclick="rateOrder(3)">★</span>
+        <span class="star" onclick="rateOrder(4)">★</span>
+        <span class="star" onclick="rateOrder(5)">★</span>
+    </div>
+    <p id="ratingText" class="rating-text">Tap to rate your experience</p>
+</div>
+
+
+  <script>
+    const RAZORPAY_KEY_ID = "rzp_live_Ra7sChrwvhz1KX";
+
+    (async () => {
+      await initAuth();
+      loadCart();
+      await prefillUserData();
+    })();
+
+    // Load cart items
+    function loadCart() {
+      const cartItemsList = document.getElementById("cartItemsList");
+      const orderSummary = document.getElementById("orderSummary");
+
+      if (cart.length === 0) {
+        cartItemsList.innerHTML = `<p>Your cart is empty. <a href="index.html">Shop now</a></p>`;
+        orderSummary.innerHTML = `<p>Total: ₹0</p>`;
+        document.getElementById("placeOrderBtn").disabled = true;
+        return;
+      }
+
+      cartItemsList.innerHTML = cart
+        .map(
+          (item) => `
+        <div class="cart-item">
+          <img src="${item.image_url || 'assets/images/default-tyre.jpg'}" alt="${item.name}">
+          <div class="item-details">
+            <h4>${item.name}</h4>
+            <p>${item.category} | ${item.size}</p>
+            <p class="price">₹${item.price}</p>
+          </div>
+          <div class="item-quantity">
+            <input type="number" value="${item.quantity}" min="1"
+              onchange="updateCartQuantity('${item.id}', this.value); loadCart();">
+          </div>
+          <div class="item-total">
+            <p>₹${item.price * item.quantity}</p>
+            <button onclick="removeFromCart('${item.id}'); loadCart();" class="btn-remove">Remove</button>
+          </div>
+        </div>`
+        )
+        .join("");
+
+      const total = getCartTotal();
+      orderSummary.innerHTML = `
+        <p>Items: ${cart.length}</p>
+        <p>Subtotal: ₹${total}</p>
+        <p>Delivery: Free</p>
+        <h3>Total: ₹${total}</h3>
+      `;
+
+      updateCartCount();
+      document.getElementById("placeOrderBtn").disabled = false;
+    }
+
+    // Prefill user data
+    async function prefillUserData() {
+      const user = await getCurrentUser();
+      if (user) {
+        document.getElementById("customerName").value =
+          user.user_metadata?.full_name || "";
+        document.getElementById("customerPhone").value =
+          user.user_metadata?.phone || "";
+      }
+    }
+
+    // Place order
+    async function placeOrder(e) {
+      e.preventDefault();
+
+      if (cart.length === 0) return alert("Cart is empty!");
+
+      const user = await getCurrentUser();
+      if (!user) {
+        alert("Please login to place order");
+        window.location.href = "auth.html";
+        return;
+      }
+
+      const customerName = document.getElementById("customerName").value.trim();
+      const customerPhone = document.getElementById("customerPhone").value.trim();
+      const deliveryAddress = document.getElementById("deliveryAddress").value.trim();
+      const paymentMethod = document.getElementById("paymentMethod").value;
+      const total = getCartTotal();
+
+      document.getElementById("placeOrderBtn").disabled = true;
+      document.getElementById("placeOrderBtn").textContent = "Processing...";
+
+      if (paymentMethod === "online") {
+        // Razorpay checkout
+        const options = {
+          key: RAZORPAY_KEY_ID,
+          amount: total * 100,
+          currency: "INR",
+          name: "MM TYRES",
+          description: "Tyre Purchase Payment",
+          handler: async function (response) {
+            await saveOrder(user, customerName, customerPhone, deliveryAddress, paymentMethod, response.razorpay_payment_id);
+          },
+          prefill: {
+            name: customerName,
+            contact: customerPhone,
+          },
+          theme: { color: "#007bff" },
+        };
+        const rzp = new Razorpay(options);
+        rzp.open();
+      } else {
+        await saveOrder(user, customerName, customerPhone, deliveryAddress, paymentMethod, "COD");
+      }
+    }
+
+    async function saveOrder(user, name, phone, address, paymentMethod, paymentId) {
+      try {
+        const orderData = {
+          user_id: user.id,
+          customer_name: name,
+          customer_phone: phone,
+          delivery_address: address,
+          payment_method: paymentMethod,
+          payment_id: paymentId,
+          items: cart,
+          total: getCartTotal(),
+          status: "pending",
+          created_at: new Date().toISOString(),
+        };
+
+        const { data, error } = await supabase.from("orders").insert([orderData]).select();
+        if (error) throw error;
+
+        alert("✅ Order placed successfully! Order ID: " + data[0].id);
+        clearCart();
+        window.location.href = "orders.html";
+      } catch (err) {
+        console.error(err);
+        alert("Error placing order: " + err.message);
+        document.getElementById("placeOrderBtn").disabled = false;
+        document.getElementById("placeOrderBtn").textContent = "Place Order";
+      }
+    }
+    // Create confetti effect
+function createConfetti() {
+    const colors = ['#e53935', '#ff9800', '#4caf50', '#2196f3', '#9c27b0'];
+    for (let i = 0; i < 50; i++) {
+        const confetti = document.createElement('div');
+        confetti.className = 'confetti';
+        confetti.style.left = Math.random() * 100 + 'vw';
+        confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+        confetti.style.animationDelay = Math.random() * 2 + 's';
+        document.body.appendChild(confetti);
+        
+        // Remove confetti after animation
+        setTimeout(() => {
+            confetti.remove();
+        }, 3000);
+    }
+}
+
+// Show order success popup
+function showOrderSuccessPopup(orderData) {
+    const popup = document.getElementById('orderSuccessPopup');
+    const orderSummary = document.getElementById('popupOrderSummary');
+    
+    // Update order summary in popup
+    orderSummary.innerHTML = `
+        <p><strong>Order ID:</strong> ${orderData.id.substring(0, 8).toUpperCase()}</p>
+        <p><strong>Items:</strong> ${cart.length}</p>
+        <p><strong>Total Amount:</strong> ₹${getCartTotal()}</p>
+        <p><strong>Delivery to:</strong> ${orderData.delivery_address}</p>
+        <p><strong>Payment:</strong> ${orderData.payment_method.toUpperCase()}</p>
+    `;
+    
+    // Show popup
+    popup.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    
+    // Create confetti effect
+    createConfetti();
+}
+
+// Close order popup
+function closeOrderPopup() {
+    const popup = document.getElementById('orderSuccessPopup');
+    popup.style.display = 'none';
+    document.body.style.overflow = 'auto';
+}
+
+// View my orders
+function viewMyOrders() {
+    closeOrderPopup();
+    window.location.href = 'orders.html';
+}
+
+// Continue shopping
+function continueShopping() {
+    closeOrderPopup();
+    window.location.href = 'index.html';
+}
+
+// Share order details
+function shareOrder() {
+    const orderText = `I just placed an order from MM TYRES! 🚗\n\nOrder Details:\n- Total: ₹${getCartTotal()}\n- Items: ${cart.length}\n- Payment: ${document.getElementById('paymentMethod').value.toUpperCase()}\n\nThank you MM TYRES for the great service!`;
+    
+    if (navigator.share) {
+        navigator.share({
+            title: 'My Order from MM TYRES',
+            text: orderText,
+            url: window.location.href
+        });
+    } else {
+        // Fallback for browsers that don't support Web Share API
+        navigator.clipboard.writeText(orderText).then(() => {
+            alert('Order details copied to clipboard! 📋');
+        });
+    }
+}
+
+// Updated saveOrder function
+async function saveOrder(user, name, phone, address, paymentMethod, paymentId) {
+    try {
+        const orderData = {
+            user_id: user.id,
+            customer_name: name,
+            customer_phone: phone,
+            delivery_address: address,
+            payment_method: paymentMethod,
+            payment_id: paymentId,
+            items: cart,
+            total: getCartTotal(),
+            status: "pending",
+            created_at: new Date().toISOString(),
+        };
+
+        const { data, error } = await supabase.from("orders").insert([orderData]).select();
+        if (error) throw error;
+
+        // Show success popup instead of alert
+        showOrderSuccessPopup(data[0]);
+        
+        // Clear cart but don't redirect immediately
+        clearCart();
+        
+    } catch (err) {
+        console.error(err);
+        alert("Error placing order: " + err.message);
+        document.getElementById("placeOrderBtn").disabled = false;
+        document.getElementById("placeOrderBtn").textContent = "Place Order";
+    }
+}
+// Rating system
+let currentRating = 0;
+
+function rateOrder(rating) {
+    currentRating = rating;
+    const stars = document.querySelectorAll('.star');
+    const ratingText = document.getElementById('ratingText');
+    
+    stars.forEach((star, index) => {
+        if (index < rating) {
+            star.classList.add('active');
+        } else {
+            star.classList.remove('active');
+        }
+    });
+    
+    const messages = [
+        "Thanks for your feedback!",
+        "Thanks! We'll try better.",
+        "Good! We appreciate it.",
+        "Great! Thank you!",
+        "Excellent! 🎉 Thank you!"
+    ];
+    
+    ratingText.textContent = messages[rating - 1];
+    
+    // Save rating to localStorage or send to server
+    setTimeout(() => {
+        localStorage.setItem('orderRating', rating);
+    }, 1000);
+}
+  </script>
+</body>
+</html>

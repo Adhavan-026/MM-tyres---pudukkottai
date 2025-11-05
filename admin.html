@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - MM TYRES</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div>
+                    <h1>MM TYRES - Admin Panel</h1>
+                    <p>Owner: Alexander M</p>
+                </div>
+                <nav>
+                    <a href="index.html">Back to Store</a>
+                    <div id="authButtons"></div>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="showAdminTab('products')">Products</button>
+            <button class="tab-btn" onclick="showAdminTab('orders')">Orders</button>
+            <button class="tab-btn" onclick="showAdminTab('bookings')">Bookings</button>
+        </div>
+
+        <!-- Products Tab -->
+        <div id="productsTab" class="tab-content active">
+            <h2>Product Management</h2>
+            
+            <button onclick="showAddProductForm()" class="btn-primary">+ Add New Product</button>
+            
+            <!-- Add Product Form (Hidden by default) -->
+            <div id="addProductForm" style="display:none; margin: 20px 0; padding: 20px; border: 1px solid #ddd;">
+                <h3>Add New Product</h3>
+                <form onsubmit="addProduct(event)">
+                    <input type="text" id="prodName" placeholder="Product Name" required>
+                    <input type="text" id="prodSize" placeholder="Size (e.g., 195/65 R15)" required>
+                    <select id="prodCategory" required>
+                        <option value="">Select Category</option>
+                        <option value="Car">Car</option>
+                        <option value="Bike">Bike</option>
+                        <option value="SUV">SUV</option>
+                        <option value="Truck">Truck</option>
+                    </select>
+                    <input type="number" id="prodPrice" placeholder="Price" required min="0">
+                    <input type="number" id="prodStock" placeholder="Stock Quantity" required min="0">
+                    
+                    <label>Product Image:</label>
+                    <input type="file" id="prodImageFile" accept="image/*" onchange="previewImage(this)">
+                    <div id="imagePreview" style="margin: 10px 0;"></div>
+                    <small style="color: #666;">Or enter image URL:</small>
+                    <input type="url" id="prodImageUrl" placeholder="Image URL (optional)">
+                    
+                    <button type="submit" class="btn-primary" id="addProductBtn">Add Product</button>
+                    <button type="button" onclick="hideAddProductForm()" class="btn-secondary">Cancel</button>
+                </form>
+            </div>
+
+            <div id="productsListAdmin">
+                <p>Loading products...</p>
+            </div>
+        </div>
+
+        <!-- Orders Tab -->
+        <div id="ordersTab" class="tab-content">
+            <h2>Orders Management</h2>
+            <div id="ordersListAdmin">
+                <p>Loading orders...</p>
+            </div>
+        </div>
+
+        <!-- Bookings Tab -->
+        <div id="bookingsTab" class="tab-content">
+            <h2>Bookings Management</h2>
+            <div id="bookingsListAdmin">
+                <p>Loading bookings...</p>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 MM TYRES - Admin Panel</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/admin.js"></script>
+    <script>
+        // Initialize admin page
+        (async () => {
+            await protectAdminPage();
+            await initAuth();
+            loadProductsAdmin();
+        })();
+
+        // Show/hide tabs
+        function showAdminTab(tab) {
+            const tabs = document.querySelectorAll('.tab-content');
+            const btns = document.querySelectorAll('.tab-btn');
+            
+            tabs.forEach(t => t.classList.remove('active'));
+            btns.forEach(b => b.classList.remove('active'));
+
+            if (tab === 'products') {
+                document.getElementById('productsTab').classList.add('active');
+                btns[0].classList.add('active');
+                loadProductsAdmin();
+            } else if (tab === 'orders') {
+                document.getElementById('ordersTab').classList.add('active');
+                btns[1].classList.add('active');
+                loadOrdersAdmin();
+            } else if (tab === 'bookings') {
+                document.getElementById('bookingsTab').classList.add('active');
+                btns[2].classList.add('active');
+                loadBookingsAdmin();
+            }
+        }
+
+        function showAddProductForm() {
+            document.getElementById('addProductForm').style.display = 'block';
+        }
+
+        function hideAddProductForm() {
+            document.getElementById('addProductForm').style.display = 'none';
+            document.querySelector('#addProductForm form').reset();
+        }
+    </script>
+</body>
+</html>

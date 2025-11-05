@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Orders - MM TYRES</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div>
+                    <h1>MM TYRES</h1>
+                    <p>CEAT Tyres - Pudukkottai</p>
+                </div>
+                <nav>
+                    <a href="index.html">Home</a>
+                    <a href="booking.html">Book Alignment</a>
+                    <a href="orders.html">My Orders</a>
+                    <a href="cart.html">Cart (<span id="cartCount">0</span>)</a>
+                    <div id="authButtons"></div>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <h2>My Orders</h2>
+        <div id="ordersList">
+            <p>Loading orders...</p>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 MM TYRES - CEAT Tyres Dealer, Pudukkottai</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/orders.js"></script>
+    <script>
+        // Initialize page
+        (async () => {
+            await initAuth();
+            updateCartCount();
+            loadOrders();
+        })();
+        // orders.js - Display user orders from Supabase
+
+async function loadOrders() {
+    const ordersList = document.getElementById('ordersList');
+    
+    try {
+        // Check if user is logged in
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        
+        if (userError || !user) {
+            ordersList.innerHTML = `
+                <div class="message">
+                    <p>Please log in to view your orders.</p>
+                    <a href="index.html" class="btn">Go to Home</a>
+                </div>
+            `;
+            return;
+        }
+
+        // Fetch orders for the logged-in user
+        const { data: orders, error } = await supabase
+            .from('orders')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching orders:', error);
+            ordersList.innerHTML = `
+                <div class="message error">
+                    <p>Error loading orders: ${error.message}</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Display orders
+        if (!orders || orders.length === 0) {
+            ordersList.innerHTML = `
+                <div class="message">
+                    <p>You haven't placed any orders yet.</p>
+                    <a href="index.html" class="btn">Start Shopping</a>
+                </div>
+            `;
+            return;
+        }
+
+        // Create HTML for orders
+        let ordersHTML = '';
+        orders.forEach(order => {
+            const items = Array.isArray(order.items) ? order.items : [];
+            const orderDate = new Date(order.created_at).toLocaleString('en-IN', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            ordersHTML += `
+                <div class="order-card">
+                    <div class="order-header">
+                        <div>
+                            <h3>Order #${order.id.substring(0, 8)}</h3>
+                            <p class="order-date">${orderDate}</p>
+                        </div>
+                        <div class="order-status status-${order.status}">
+                            ${order.status.toUpperCase()}
+                        </div>
+                    </div>
+                    
+                    <div class="order-details">
+                        <div class="order-info">
+                            <p><strong>Customer:</strong> ${order.customer_name}</p>
+                            <p><strong>Phone:</strong> ${order.customer_phone}</p>
+                            <p><strong>Delivery Address:</strong> ${order.delivery_address}</p>
+                            <p><strong>Payment Method:</strong> ${order.payment_method}</p>
+                            ${order.payment_id ? `<p><strong>Payment ID:</strong> ${order.payment_id}</p>` : ''}
+                        </div>
+                        
+                        <div class="order-items">
+                            <h4>Items:</h4>
+                            <ul>
+                                ${items.map(item => `
+                                    <li>
+                                        <span>${item.name} - ${item.size}</span>
+                                        <span>Qty: ${item.quantity} × ₹${item.price.toLocaleString('en-IN')} = ₹${(item.quantity * item.price).toLocaleString('en-IN')}</span>
+                                    </li>
+                                `).join('')}
+                            </ul>
+                        </div>
+                        
+                        <div class="order-total">
+                            <strong>Total: ₹${parseFloat(order.total).toLocaleString('en-IN')}</strong>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        ordersList.innerHTML = ordersHTML;
+
+    } catch (error) {
+        console.error('Error in loadOrders:', error);
+        ordersList.innerHTML = `
+            <div class="message error">
+                <p>An unexpected error occurred. Please try again later.</p>
+            </div>
+        `;
+    }
+}
+
+// Optionally add a refresh button
+function addRefreshButton() {
+    const ordersList = document.getElementById('ordersList');
+    const refreshBtn = document.createElement('button');
+    refreshBtn.textContent = 'Refresh Orders';
+    refreshBtn.className = 'btn';
+    refreshBtn.onclick = loadOrders;
+    ordersList.parentElement.insertBefore(refreshBtn, ordersList);
+}
+    </script>
+    <style>
+        /* Orders Page Styles - Add to your style.css */
+
+.order-card {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.order-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #f0f0f0;
+    margin-bottom: 15px;
+}
+
+.order-header h3 {
+    margin: 0 0 5px 0;
+    color: #333;
+}
+
+.order-date {
+    color: #666;
+    font-size: 0.9em;
+    margin: 0;
+}
+
+.order-status {
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 0.85em;
+    text-transform: uppercase;
+}
+
+.status-pending {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.status-confirmed {
+    background-color: #d1ecf1;
+    color: #0c5460;
+}
+
+.status-processing {
+    background-color: #d1ecf1;
+    color: #0c5460;
+}
+
+.status-completed {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status-cancelled {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.order-details {
+    display: grid;
+    gap: 15px;
+}
+
+.order-info p {
+    margin: 5px 0;
+    color: #555;
+}
+
+.order-info strong {
+    color: #333;
+    display: inline-block;
+    min-width: 140px;
+}
+
+.order-items {
+    margin-top: 10px;
+}
+
+.order-items h4 {
+    margin: 0 0 10px 0;
+    color: #333;
+}
+
+.order-items ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.order-items li {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.order-items li:last-child {
+    border-bottom: none;
+}
+
+.order-total {
+    text-align: right;
+    font-size: 1.2em;
+    color: #333;
+    padding-top: 10px;
+    border-top: 2px solid #333;
+}
+
+.message {
+    text-align: center;
+    padding: 40px 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.message.error {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.message p {
+    margin-bottom: 20px;
+    font-size: 1.1em;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .order-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .order-items li {
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .order-info strong {
+        min-width: auto;
+        display: block;
+    }
+}
+    </style>
+</body>
+</html>
+
+
+

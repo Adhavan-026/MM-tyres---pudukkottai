@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Alignment - MM TYRES</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div>
+                    <h1>MM TYRES</h1>
+                    <p>CEAT Tyres - Pudukkottai</p>
+                </div>
+                <nav>
+                    <a href="index.html">Home</a>
+                    <a href="booking.html">Book Alignment</a>
+                    <a href="orders.html">My Orders</a>
+                    <a href="cart.html">Cart (<span id="cartCount">0</span>)</a>
+                    <div id="authButtons"></div>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="showTab('new')">New Booking</button>
+            <button class="tab-btn" onclick="showTab('history')">My Bookings</button>
+        </div>
+
+        <!-- New Booking Tab -->
+        <div id="newBookingTab" class="tab-content active">
+            <h2>Book Wheel Alignment Service</h2>
+            
+            <form id="bookingForm" onsubmit="createBooking(event)">
+                <h3>Customer Details</h3>
+                <input type="text" id="customerName" placeholder="Full Name" required>
+                <input type="tel" id="customerPhone" placeholder="Phone Number" required pattern="[0-9]{10}">
+
+                <h3>Vehicle Details</h3>
+                <input type="text" id="vehicleNumber" placeholder="Vehicle Number (e.g., TN-XX-XXXX-XXXX)" required>
+                <select id="vehicleType" required>
+                    <option value="">Select Vehicle Type</option>
+                    <option value="Car">Car</option>
+                    <option value="Bike">Bike</option>
+                    <option value="SUV">SUV</option>
+                    <option value="Truck">Truck</option>
+                </select>
+
+                <h3>Service Type</h3>
+                <select id="serviceType" required>
+                    <option value="">Select Service</option>
+                    <option value="alignment">Wheel Alignment</option>
+                    <option value="balancing">Wheel Balancing</option>
+                    <option value="both">Both (Alignment + Balancing)</option>
+                </select>
+
+                <h3>Select Date & Time</h3>
+                <input type="date" id="bookingDate" required onchange="checkAvailability()">
+                
+                <div id="slotsContainer">
+                    <p>Please select a date to view available slots</p>
+                </div>
+
+                <textarea id="notes" placeholder="Additional Notes (Optional)" rows="3"></textarea>
+
+                <button type="submit" class="btn-primary" id="bookBtn">Book Appointment</button>
+            </form>
+        </div>
+
+        <!-- Booking History Tab -->
+        <div id="historyTab" class="tab-content">
+            <h2>My Bookings</h2>
+            <div id="bookingsList">
+                <p>Loading bookings...</p>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 MM TYRES - CEAT Tyres Dealer, Pudukkottai</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/booking.js"></script>
+    <script>
+        // Initialize page
+        (async () => {
+            await initAuth();
+            updateCartCount();
+            await prefillUserData();
+            setMinDate();
+        })();
+
+        // Show/hide tabs
+        function showTab(tab) {
+            const tabs = document.querySelectorAll('.tab-content');
+            const btns = document.querySelectorAll('.tab-btn');
+            
+            tabs.forEach(t => t.classList.remove('active'));
+            btns.forEach(b => b.classList.remove('active'));
+
+            if (tab === 'new') {
+                document.getElementById('newBookingTab').classList.add('active');
+                btns[0].classList.add('active');
+            } else {
+                document.getElementById('historyTab').classList.add('active');
+                btns[1].classList.add('active');
+                loadBookingHistory();
+            }
+        }
+
+        // Set minimum date to today
+        function setMinDate() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('bookingDate').min = today;
+        }
+
+        // Prefill user data
+        async function prefillUserData() {
+            const user = await getCurrentUser();
+            if (user) {
+                document.getElementById('customerName').value = user.user_metadata?.full_name || '';
+                document.getElementById('customerPhone').value = user.user_metadata?.phone || '';
+            }
+        }
+    </script>
+</body>
+</html>

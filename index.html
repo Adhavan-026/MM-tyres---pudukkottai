@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MM TYRES - CEAT Tyres Dealer Pudukkottai</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div>
+                    <h1>MM TYRES</h1>
+                    <p>CEAT Tyres - Pudukkottai | Owner: Alexander M</p>
+                </div>
+                <nav>
+                    <a href="index.html">Home</a>
+                    <a href="booking.html">Book Alignment</a>
+                    <a href="orders.html">My Orders</a>
+                    <a href="cart.html">Cart (<span id="cartCount">0</span>)</a>
+                    <div id="authButtons"></div>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <h2>Premium CEAT Tyres</h2>
+            <p>Best Quality Tyres with Professional Wheel Alignment Service</p>
+            <div class="cta-buttons">
+                <a href="#products"><button class="btn-primary">Shop Tyres</button></a>
+                <a href="booking.html"><button class="btn-secondary">Book Alignment</button></a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Products Section -->
+    <section id="products" class="products-section">
+        <div class="container">
+            <h2>Our Products</h2>
+            
+            <!-- Filters -->
+            <div class="filters">
+                <input type="text" id="searchInput" placeholder="Search tyres..." onkeyup="filterProducts()">
+                <select id="categoryFilter" onchange="filterProducts()">
+                    <option value="">All Categories</option>
+                    <option value="Car">Car</option>
+                    <option value="Bike">Bike</option>
+                    <option value="SUV">SUV</option>
+                    <option value="Truck">Truck</option>
+                </select>
+                <select id="priceFilter" onchange="filterProducts()">
+                    <option value="">All Prices</option>
+                    <option value="0-3000">Under ₹3,000</option>
+                    <option value="3000-5000">₹3,000 - ₹5,000</option>
+                    <option value="5000-10000">₹5,000 - ₹10,000</option>
+                    <option value="10000-999999">Above ₹10,000</option>
+                </select>
+            </div>
+
+            <!-- Product Grid -->
+            <div id="productGrid" class="product-grid">
+                <p>Loading products...</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Product Detail Modal -->
+    <div id="productModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 MM TYRES - CEAT Tyres Dealer, Pudukkottai</p>
+            <p>Contact: Owner Alexander M | Email: contact@mmtyres.com</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        // Initialize page
+        (async () => {
+            await initAuth();
+            updateCartCount();
+            loadProducts();
+        })();
+    </script>
+</body>
+</html>
